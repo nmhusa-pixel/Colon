@@ -2,6 +2,7 @@ const storageKey = "prep-companion-v1";
 const suflaveTemplateId = "green-mountain-suflave-2025";
 const miralaxTemplateId = "green-mountain-miralax-2023";
 const nulytelyTemplateId = "green-mountain-nulytely-2022";
+const suprepTemplateId = "green-mountain-suprep-2022";
 const maxTimerDelay = 12 * 60 * 60 * 1000;
 const prepTemplates = {
   suflave: {
@@ -21,6 +22,12 @@ const prepTemplates = {
     label: "Nulytely prep",
     builder: buildNulytelyTemplate,
     loadedMessage: "Green Mountain Nulytely schedule loaded."
+  },
+  suprep: {
+    id: suprepTemplateId,
+    label: "Suprep prep",
+    builder: buildSuprepTemplate,
+    loadedMessage: "Green Mountain Suprep schedule loaded."
   }
 };
 
@@ -162,7 +169,9 @@ function resolvePrepType(prepType, templateId, steps) {
   if (prepTemplates[prepType]) return prepType;
   if (templateId === miralaxTemplateId) return "miralax";
   if (templateId === nulytelyTemplateId) return "nulytely";
+  if (templateId === suprepTemplateId) return "suprep";
   if (templateId === suflaveTemplateId) return "suflave";
+  if (steps.some(step => /suprep/i.test(`${step.title} ${step.message}`))) return "suprep";
   if (steps.some(step => /nulytely/i.test(`${step.title} ${step.message}`))) return "nulytely";
   if (steps.some(step => /miralax|peg-3350|bisacodyl|dulcolax|polyethylene glycol/i.test(`${step.title} ${step.message}`))) {
     return "miralax";
@@ -499,6 +508,89 @@ function buildNulytelyTemplate(procedureDate) {
       { type: "offset", minutes: -300 },
       "Continue remaining Nulytely",
       "Continue drinking 8 ounces every 15 to 20 minutes until the bottle is empty."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -270 },
+      "Drink clear liquids",
+      "Continue drinking an 8 ounce glass of clear liquid every half hour until 2 hours before the procedure."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -120 },
+      "Stop drinking liquids",
+      "Stop drinking all liquids 2 hours before the procedure. You may take essential morning medications with a sip of water if your care team instructed you to do so."
+    )
+  ];
+}
+
+function buildSuprepTemplate(procedureDate) {
+  return [
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 5, hour: 9, minute: 0 },
+      "Stop supplements and pick up Suprep",
+      "Stop all vitamins, herbal supplements, and iron supplements. Do not eat nuts, seeds, or popcorn. Pick up your Suprep prescription up to 5 days before the appointment. If you are diabetic, call your primary care clinician to discuss medications before prep."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 7, minute: 0 },
+      "Clear liquid diet all day",
+      "Do not eat solid food today. Start a clear liquid diet when you wake up. Clear liquids include water, clear strained juice, clear broth, soda, sports drinks, black coffee, Jello, and popsicles. Avoid milk, milk products, anything you cannot see through, and anything red or purple."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 0 },
+      "Start Suprep Dose 1",
+      "At 5 PM, pour one 6 ounce bottle of Suprep into the mixing container, add cool water to the 16 ounce line, and drink the entire amount. If nausea occurs, slow down and continue clear liquids during the evening."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 20 },
+      "Drink water after Suprep",
+      "Drink water now. You need to drink 32 ounces of water over the next hour after the first Suprep dose."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 40 },
+      "Continue 32 ounces of water",
+      "Continue drinking water after the first Suprep dose. Finish 32 ounces total over the hour."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 18, minute: 0 },
+      "Finish water after Dose 1",
+      "Finish the 32 ounces of water after the first Suprep dose."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 20, minute: 0 },
+      "Continue clear liquids",
+      "Continue drinking plenty of clear liquids until you go to bed."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -360 },
+      "Start Suprep Dose 2",
+      "Five to six hours before the procedure, pour the second 6 ounce bottle of Suprep into the mixing container, add cool water to the 16 ounce line, and drink the entire amount."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -340 },
+      "Drink water after Suprep",
+      "Drink water now. You need to drink 32 ounces of water over the next hour after the second Suprep dose."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -320 },
+      "Continue 32 ounces of water",
+      "Continue drinking water after the second Suprep dose. Finish 32 ounces total over the hour."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -300 },
+      "Finish water after Dose 2",
+      "Finish the 32 ounces of water after the second Suprep dose."
     ),
     makePrepStep(
       procedureDate,
