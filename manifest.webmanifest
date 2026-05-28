@@ -1,7 +1,7 @@
 {
-  "name": "Colonoscopy Prep Companion",
-  "short_name": "Prep Companion",
-  "description": "Voice reminders for colonoscopy preparation steps.",
+  "name": "Green Mountain SUFLAVE Prep Companion",
+  "short_name": "SUFLAVE Prep",
+  "description": "Voice reminders for Green Mountain Surgery Center SUFLAVE colonoscopy preparation steps.",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f4f8fd",

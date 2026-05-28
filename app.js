@@ -1,17 +1,11 @@
 const storageKey = "prep-companion-v1";
+const suflaveTemplateId = "green-mountain-suflave-2025";
 const maxTimerDelay = 12 * 60 * 60 * 1000;
-const standardStepRules = {
-  "Review medication instructions": { type: "dayBefore", days: 5, hour: 9, minute: 0 },
-  "Start clear liquid diet": { type: "dayBefore", days: 1, hour: 0, minute: 0 },
-  "Begin MiraLAX prep": { type: "dayBefore", days: 1, hour: 17, minute: 0 },
-  "Continue prep fluids": { type: "dayBefore", days: 1, hour: 20, minute: 0 },
-  "Finish second dose window": { type: "offset", minutes: -360 },
-  "Stop liquids if instructed": { type: "offset", minutes: -240 }
-};
 
 const state = {
   procedureTime: "",
   arrivalTime: "",
+  templateId: suflaveTemplateId,
   repeatMinutes: 10,
   voiceName: "",
   alarmsEnabled: true,
@@ -28,7 +22,7 @@ const els = {
   voiceSelect: document.querySelector("#voiceSelect"),
   repeatSelect: document.querySelector("#repeatSelect"),
   enableAlarms: document.querySelector("#enableAlarms"),
-  loadTemplate: document.querySelector("#loadTemplate"),
+  loadSuflaveTemplate: document.querySelector("#loadSuflaveTemplate"),
   testAlarm: document.querySelector("#testAlarm"),
   printPlan: document.querySelector("#printPlan"),
   saveStatus: document.querySelector("#saveStatus"),
@@ -100,6 +94,7 @@ function save() {
   localStorage.setItem(storageKey, JSON.stringify({
     procedureTime: state.procedureTime,
     arrivalTime: state.arrivalTime,
+    templateId: state.templateId,
     repeatMinutes: state.repeatMinutes,
     voiceName: state.voiceName,
     alarmsEnabled: state.alarmsEnabled,
@@ -117,67 +112,150 @@ function load() {
       Object.assign(state, JSON.parse(stored));
       state.alarmsEnabled = true;
       state.steps = state.steps.filter(step => step.title !== "Leave for appointment");
+      const hasOldTemplate = state.templateId !== suflaveTemplateId
+        || state.steps.some(step => /miralax|polyethylene glycol|finish second dose/i.test(`${step.title} ${step.message}`))
+        || !state.steps.some(step => /suflave/i.test(`${step.title} ${step.message}`));
+      if (hasOldTemplate) {
+        const procedureDate = fromInputValue(state.procedureTime) || defaultProcedureDate();
+        state.templateId = suflaveTemplateId;
+        state.procedureTime = toInputValue(procedureDate);
+        state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
+        state.steps = buildSuflaveTemplate(procedureDate);
+        state.spoken = {};
+        save();
+      }
       return;
     } catch {
       localStorage.removeItem(storageKey);
     }
   }
 
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 7);
-  tomorrow.setHours(9, 0, 0, 0);
-  state.procedureTime = toInputValue(tomorrow);
-  state.arrivalTime = toInputValue(addMinutes(tomorrow, -60));
-  state.steps = buildTemplate(tomorrow);
+  const procedureDate = defaultProcedureDate();
+  state.templateId = suflaveTemplateId;
+  state.procedureTime = toInputValue(procedureDate);
+  state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
+  state.steps = buildSuflaveTemplate(procedureDate);
 }
 
-function buildTemplate(procedureDate) {
-  const dayBefore = new Date(procedureDate);
-  dayBefore.setDate(dayBefore.getDate() - 1);
+function defaultProcedureDate() {
+  const date = new Date();
+  date.setDate(date.getDate() + 7);
+  date.setHours(9, 0, 0, 0);
+  return date;
+}
 
-  const fiveDaysBefore = new Date(procedureDate);
-  fiveDaysBefore.setDate(fiveDaysBefore.getDate() - 5);
+function makeSuflaveStep(procedureDate, rule, title, message) {
+  return {
+    id: uid(),
+    rule,
+    time: timeFromRule(procedureDate, rule),
+    title,
+    message,
+    done: false
+  };
+}
 
+function buildSuflaveTemplate(procedureDate) {
   const steps = [
-    {
-      rule: standardStepRules["Review medication instructions"],
-      time: toInputValue(new Date(fiveDaysBefore.setHours(9, 0, 0, 0))),
-      title: "Review medication instructions",
-      message: "Review your colonoscopy prep instructions today. Call your care team if you take blood thinners, diabetes medicines, iron, or medicines that affect kidneys."
-    },
-    {
-      rule: standardStepRules["Start clear liquid diet"],
-      time: toInputValue(new Date(dayBefore.setHours(0, 0, 0, 0))),
-      title: "Start clear liquid diet",
-      message: "Start the clear liquid diet now. Do not eat solid food unless your clinician gave different instructions."
-    },
-    {
-      rule: standardStepRules["Begin MiraLAX prep"],
-      time: toInputValue(new Date(dayBefore.setHours(17, 0, 0, 0))),
-      title: "Begin MiraLAX prep",
-      message: "Begin the MiraLAX or polyethylene glycol 3350 prep according to your printed instructions. Drink the first portion at the pace your care team prescribed."
-    },
-    {
-      rule: standardStepRules["Continue prep fluids"],
-      time: toInputValue(new Date(dayBefore.setHours(20, 0, 0, 0))),
-      title: "Continue prep fluids",
-      message: "Continue the prep fluids and clear liquids as directed. Stay near a bathroom and keep drinking approved clear liquids unless told otherwise."
-    },
-    {
-      rule: standardStepRules["Finish second dose window"],
-      time: toInputValue(addMinutes(procedureDate, -360)),
-      title: "Finish second dose window",
-      message: "It is time for the second dose window if your instructions use split dosing. Follow the exact timing from your care team."
-    },
-    {
-      rule: standardStepRules["Stop liquids if instructed"],
-      time: toInputValue(addMinutes(procedureDate, -240)),
-      title: "Stop liquids if instructed",
-      message: "Check your instructions for when to stop all liquids before anesthesia. Many centers use a cutoff several hours before arrival, but your printed plan controls."
-    }
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 5, hour: 9, minute: 0 },
+      "Avoid nuts, seeds, and popcorn",
+      "Starting today, do not eat nuts, seeds, or popcorn unless your clinician gave different instructions."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 7, minute: 0 },
+      "Low residue breakfast window",
+      "You may have a low residue breakfast between 7 AM and 9 AM. Examples include eggs, white bread, cottage cheese, yogurt, grits, coffee, or tea. Do not eat solid food after 9 AM."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 9, minute: 0 },
+      "Clear liquids only",
+      "Do not eat any food after 9 AM. Use clear liquids only. Avoid milk, alcohol, and anything red or purple."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 16, minute: 0 },
+      "Mix SUFLAVE Dose 1",
+      "Open one flavor packet, pour it into one SUFLAVE bottle, fill with lukewarm water to the fill line, cap, and shake until dissolved. Refrigerate for best taste if time allows."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 0 },
+      "Start SUFLAVE Dose 1",
+      "Start Dose 1. Drink 8 ounces of SUFLAVE solution every 15 minutes until the bottle is empty. Do not take oral medications within one hour of starting this dose."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 15 },
+      "Dose 1: drink 8 ounces",
+      "Drink the next 8 ounces of SUFLAVE solution. If nausea, bloating, or cramping occurs, pause or slow down until symptoms diminish."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 30 },
+      "Dose 1: drink 8 ounces",
+      "Drink the next 8 ounces of SUFLAVE solution."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 45 },
+      "Dose 1: finish bottle",
+      "Drink the next 8 ounces of SUFLAVE solution and continue every 15 minutes until the bottle is empty."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 19, minute: 0 },
+      "Drink 16 ounces of water",
+      "Drink an additional 16 ounces of water during the evening."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -330 },
+      "Mix SUFLAVE Dose 2",
+      "Mix the second SUFLAVE bottle with the second flavor packet and lukewarm water to the fill line, then shake until dissolved."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -300 },
+      "Start SUFLAVE Dose 2",
+      "Start Dose 2. This default is 5 hours before the procedure. Drink 8 ounces every 15 minutes. Do not start Dose 2 sooner than 4 hours after starting Dose 1."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -285 },
+      "Dose 2: drink 8 ounces",
+      "Drink the next 8 ounces of SUFLAVE solution."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -270 },
+      "Dose 2: drink 8 ounces",
+      "Drink the next 8 ounces of SUFLAVE solution."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -255 },
+      "Dose 2: finish bottle",
+      "Drink the next 8 ounces of SUFLAVE solution and continue every 15 minutes until the bottle is empty."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -225 },
+      "Drink 16 ounces of water",
+      "Drink an additional 16 ounces of water during the morning."
+    ),
+    makeSuflaveStep(
+      procedureDate,
+      { type: "offset", minutes: -120 },
+      "Stop drinking liquids",
+      "Stop drinking all liquids at least 2 hours before the colonoscopy unless your care team gave different instructions."
+    )
   ];
 
-  return steps.map(step => ({ ...step, id: uid(), done: false }));
+  return steps;
 }
 
 function populateVoices() {
@@ -321,15 +399,14 @@ function movePlanToProcedure(newProcedureValue) {
   const oldTime = oldProcedure && !Number.isNaN(oldProcedure.getTime()) ? oldProcedure.getTime() : null;
   const deltaMs = oldTime === null ? 0 : newProcedure.getTime() - oldTime;
   state.procedureTime = newProcedureValue;
-  state.arrivalTime = toInputValue(addMinutes(newProcedure, -60));
+  state.arrivalTime = toInputValue(addMinutes(newProcedure, -45));
 
   if (state.steps.length === 0) {
-    state.steps = buildTemplate(newProcedure);
+    state.steps = buildSuflaveTemplate(newProcedure);
   } else if (deltaMs !== 0) {
     state.steps = state.steps.map(step => ({
       ...step,
-      rule: step.rule || standardStepRules[step.title] || null,
-      time: timeFromRule(newProcedure, step.rule || standardStepRules[step.title]) || shiftDateTime(step.time, deltaMs)
+      time: timeFromRule(newProcedure, step.rule) || shiftDateTime(step.time, deltaMs)
     }));
   }
 
@@ -509,12 +586,14 @@ function refreshTemplate() {
     showToast("Set the procedure date and time first.");
     return;
   }
-  state.steps = buildTemplate(procedureDate);
+  state.templateId = suflaveTemplateId;
+  state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
+  state.steps = buildSuflaveTemplate(procedureDate);
   state.spoken = {};
   save();
   scheduleAlarms();
   render();
-  showToast("Template loaded. Edit any step to match the clinic instructions.");
+  showToast("Green Mountain SUFLAVE schedule loaded. Edit any step to match your clinic instructions.");
 }
 
 function bindEvents() {
@@ -543,7 +622,7 @@ function bindEvents() {
     save();
   });
   els.enableAlarms.addEventListener("click", enableAlarms);
-  els.loadTemplate.addEventListener("click", refreshTemplate);
+  els.loadSuflaveTemplate.addEventListener("click", refreshTemplate);
   els.testAlarm.addEventListener("click", () => {
     const testStep = {
       id: uid(),

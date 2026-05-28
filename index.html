@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#1d4f91">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="Prep Companion">
-    <title>Colonoscopy Prep Companion</title>
+    <title>Green Mountain SUFLAVE Prep Companion</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" type="image/svg+xml" href="assets/app-icon.svg">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
@@ -15,8 +15,8 @@
   <body>
     <header class="app-header">
       <div>
-        <p class="eyebrow">Prep Companion</p>
-        <h1>Colonoscopy prep alarms</h1>
+        <p class="eyebrow">Green Mountain Surgery Center</p>
+        <h1>SUFLAVE prep alarms</h1>
       </div>
       <button id="enableAlarms" class="primary-button" type="button" aria-pressed="false">Voice alarms off</button>
     </header>
@@ -24,8 +24,14 @@
     <main class="app-shell">
       <section class="setup-panel" aria-labelledby="setupTitle">
         <div class="panel-heading">
-          <h2 id="setupTitle">Procedure details</h2>
+          <h2 id="setupTitle">Green Mountain procedure details</h2>
           <span id="saveStatus" class="status-pill">Saved locally</span>
+        </div>
+
+        <div class="venue-card">
+          <strong>Green Mountain Surgery Center</strong>
+          <span>593 Hercules Drive, Colchester, VT</span>
+          <span>Arrive 45 minutes before your procedure time.</span>
         </div>
 
         <div class="form-grid">
@@ -53,13 +59,13 @@
         </div>
 
         <div class="actions">
-          <button id="loadTemplate" class="secondary-button" type="button">Load common MiraLAX template</button>
+          <button id="loadSuflaveTemplate" class="secondary-button" type="button">Reset SUFLAVE schedule</button>
           <button id="testAlarm" class="secondary-button" type="button">Test in 10 seconds</button>
           <button id="printPlan" class="ghost-button" type="button">Print</button>
         </div>
 
         <p class="medical-note">
-          All unchecked timeline items can play voice alarms at their scheduled times. Turn voice alarms on when you want spoken reminders. Use this as a reminder tool only and follow the exact instructions from the gastroenterology team.
+          Built for the Green Mountain Surgery Center SUFLAVE split-dose prep sheet. Arrive 45 minutes before your procedure. Use this as a reminder tool only and follow the exact instructions from your gastroenterology team.
         </p>
       </section>
 
@@ -108,6 +114,6 @@
 
     <div id="toast" class="toast" role="status" aria-live="assertive"></div>
 
-    <script src="app.js?v=4"></script>
+    <script src="app.js?v=7"></script>
   </body>
 </html>
