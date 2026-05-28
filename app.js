@@ -1,6 +1,7 @@
 const storageKey = "prep-companion-v1";
 const suflaveTemplateId = "green-mountain-suflave-2025";
 const miralaxTemplateId = "green-mountain-miralax-2023";
+const nulytelyTemplateId = "green-mountain-nulytely-2022";
 const maxTimerDelay = 12 * 60 * 60 * 1000;
 const prepTemplates = {
   suflave: {
@@ -14,6 +15,12 @@ const prepTemplates = {
     label: "MiraLAX / PEG-3350 prep",
     builder: buildMiralaxTemplate,
     loadedMessage: "Green Mountain MiraLAX schedule loaded."
+  },
+  nulytely: {
+    id: nulytelyTemplateId,
+    label: "Nulytely prep",
+    builder: buildNulytelyTemplate,
+    loadedMessage: "Green Mountain Nulytely schedule loaded."
   }
 };
 
@@ -154,7 +161,9 @@ function load() {
 function resolvePrepType(prepType, templateId, steps) {
   if (prepTemplates[prepType]) return prepType;
   if (templateId === miralaxTemplateId) return "miralax";
+  if (templateId === nulytelyTemplateId) return "nulytely";
   if (templateId === suflaveTemplateId) return "suflave";
+  if (steps.some(step => /nulytely/i.test(`${step.title} ${step.message}`))) return "nulytely";
   if (steps.some(step => /miralax|peg-3350|bisacodyl|dulcolax|polyethylene glycol/i.test(`${step.title} ${step.message}`))) {
     return "miralax";
   }
@@ -407,6 +416,89 @@ function buildMiralaxTemplate(procedureDate) {
       { type: "offset", minutes: -315 },
       "Finish morning PEG-3350 dose",
       "Drink the remaining 8 ounces of the mixed PEG-3350 solution, or continue every 15 to 30 minutes until done."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -270 },
+      "Drink clear liquids",
+      "Continue drinking an 8 ounce glass of clear liquid every half hour until 2 hours before the procedure."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -120 },
+      "Stop drinking liquids",
+      "Stop drinking all liquids 2 hours before the procedure. You may take essential morning medications with a sip of water if your care team instructed you to do so."
+    )
+  ];
+}
+
+function buildNulytelyTemplate(procedureDate) {
+  return [
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 5, hour: 9, minute: 0 },
+      "Stop supplements and pick up Nulytely",
+      "Stop all vitamins, herbal supplements, and iron supplements. Avoid nuts, seeds, and popcorn. Pick up your Nulytely prescription up to 5 days before the appointment and read the warning information enclosed with the packet. If you are diabetic, call your primary care clinician to discuss medications before prep."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 7, minute: 0 },
+      "Clear liquid diet all day",
+      "Do not eat solid food today. Start a clear liquid diet when you wake up. Clear liquids include water, clear strained juice, clear broth, soda, sports drinks, black coffee, Jello, and popsicles. Avoid milk, milk products, anything you cannot see through, and anything red or purple."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 0 },
+      "Start Nulytely evening dose",
+      "At 5 PM, drink 8 ounces of Nulytely solution every 15 to 20 minutes until the bottle is half empty. Refrigerate the remaining solution. If you experience nausea, slow down and continue clear liquids during the evening."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 20 },
+      "Drink 8 ounces of Nulytely",
+      "Drink the next 8 ounces of Nulytely solution. Continue every 15 to 20 minutes until the bottle is half empty."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 40 },
+      "Drink 8 ounces of Nulytely",
+      "Drink the next 8 ounces of Nulytely solution. Slow down if nausea occurs."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 18, minute: 0 },
+      "Continue Nulytely evening dose",
+      "Continue drinking 8 ounces every 15 to 20 minutes until the bottle is half empty, then refrigerate the remaining solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 20, minute: 0 },
+      "Continue clear liquids",
+      "Continue drinking plenty of clear liquids until you go to bed."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -360 },
+      "Start remaining Nulytely",
+      "Five to six hours before the procedure, start drinking the remaining Nulytely solution. Drink 8 ounces every 15 to 20 minutes until the bottle is empty. You must drink all the solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -340 },
+      "Drink 8 ounces of Nulytely",
+      "Drink the next 8 ounces of Nulytely solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -320 },
+      "Drink 8 ounces of Nulytely",
+      "Drink the next 8 ounces of Nulytely solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -300 },
+      "Continue remaining Nulytely",
+      "Continue drinking 8 ounces every 15 to 20 minutes until the bottle is empty."
     ),
     makePrepStep(
       procedureDate,
