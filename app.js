@@ -1,11 +1,27 @@
 const storageKey = "prep-companion-v1";
 const suflaveTemplateId = "green-mountain-suflave-2025";
+const miralaxTemplateId = "green-mountain-miralax-2023";
 const maxTimerDelay = 12 * 60 * 60 * 1000;
+const prepTemplates = {
+  suflave: {
+    id: suflaveTemplateId,
+    label: "SUFLAVE split-dose prep",
+    builder: buildSuflaveTemplate,
+    loadedMessage: "Green Mountain SUFLAVE schedule loaded."
+  },
+  miralax: {
+    id: miralaxTemplateId,
+    label: "MiraLAX / PEG-3350 prep",
+    builder: buildMiralaxTemplate,
+    loadedMessage: "Green Mountain MiraLAX schedule loaded."
+  }
+};
 
 const state = {
   procedureTime: "",
   arrivalTime: "",
   templateId: suflaveTemplateId,
+  prepType: "suflave",
   repeatMinutes: 10,
   voiceName: "",
   alarmsEnabled: true,
@@ -20,10 +36,11 @@ const state = {
 const els = {
   procedureTime: document.querySelector("#procedureTime"),
   arrivalTime: document.querySelector("#arrivalTime"),
+  prepSelect: document.querySelector("#prepSelect"),
   voiceSelect: document.querySelector("#voiceSelect"),
   repeatSelect: document.querySelector("#repeatSelect"),
   enableAlarms: document.querySelector("#enableAlarms"),
-  loadSuflaveTemplate: document.querySelector("#loadSuflaveTemplate"),
+  resetSchedule: document.querySelector("#resetSchedule"),
   testAlarm: document.querySelector("#testAlarm"),
   printPlan: document.querySelector("#printPlan"),
   saveStatus: document.querySelector("#saveStatus"),
@@ -99,6 +116,7 @@ function save() {
     procedureTime: state.procedureTime,
     arrivalTime: state.arrivalTime,
     templateId: state.templateId,
+    prepType: state.prepType,
     repeatMinutes: state.repeatMinutes,
     voiceName: state.voiceName,
     alarmsEnabled: state.alarmsEnabled,
@@ -116,17 +134,12 @@ function load() {
       Object.assign(state, JSON.parse(stored));
       state.alarmsEnabled = true;
       state.steps = state.steps.filter(step => step.title !== "Leave for appointment");
-      const hasOldTemplate = state.templateId !== suflaveTemplateId
-        || state.steps.some(step => /miralax|polyethylene glycol|finish second dose/i.test(`${step.title} ${step.message}`))
-        || !state.steps.some(step => /suflave/i.test(`${step.title} ${step.message}`));
+      state.prepType = resolvePrepType(state.prepType, state.templateId, state.steps);
+      const template = prepTemplates[state.prepType];
+      const hasOldTemplate = state.templateId !== template.id;
       if (hasOldTemplate) {
         const procedureDate = fromInputValue(state.procedureTime) || defaultProcedureDate();
-        state.templateId = suflaveTemplateId;
-        state.procedureTime = toInputValue(procedureDate);
-        state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
-        state.steps = buildSuflaveTemplate(procedureDate);
-        state.spoken = {};
-        save();
+        applyPrepTemplate(state.prepType, procedureDate);
       }
       return;
     } catch {
@@ -135,10 +148,28 @@ function load() {
   }
 
   const procedureDate = defaultProcedureDate();
-  state.templateId = suflaveTemplateId;
+  applyPrepTemplate("suflave", procedureDate);
+}
+
+function resolvePrepType(prepType, templateId, steps) {
+  if (prepTemplates[prepType]) return prepType;
+  if (templateId === miralaxTemplateId) return "miralax";
+  if (templateId === suflaveTemplateId) return "suflave";
+  if (steps.some(step => /miralax|peg-3350|bisacodyl|dulcolax|polyethylene glycol/i.test(`${step.title} ${step.message}`))) {
+    return "miralax";
+  }
+  return "suflave";
+}
+
+function applyPrepTemplate(prepType, procedureDate) {
+  const template = prepTemplates[prepType] || prepTemplates.suflave;
+  state.prepType = prepType;
+  state.templateId = template.id;
   state.procedureTime = toInputValue(procedureDate);
   state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
-  state.steps = buildSuflaveTemplate(procedureDate);
+  state.steps = template.builder(procedureDate);
+  state.spoken = {};
+  state.showFullSchedule = false;
 }
 
 function defaultProcedureDate() {
@@ -149,6 +180,17 @@ function defaultProcedureDate() {
 }
 
 function makeSuflaveStep(procedureDate, rule, title, message) {
+  return {
+    id: uid(),
+    rule,
+    time: timeFromRule(procedureDate, rule),
+    title,
+    message,
+    done: false
+  };
+}
+
+function makePrepStep(procedureDate, rule, title, message) {
   return {
     id: uid(),
     rule,
@@ -260,6 +302,125 @@ function buildSuflaveTemplate(procedureDate) {
   ];
 
   return steps;
+}
+
+function buildMiralaxTemplate(procedureDate) {
+  return [
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 5, hour: 9, minute: 0 },
+      "Stop supplements and modify diet",
+      "Stop all vitamins, herbal supplements, and iron supplements. Avoid nuts, seeds, popcorn, and similar foods. If you are diabetic, call your primary care clinician to discuss medications before prep."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 3, hour: 9, minute: 0 },
+      "Purchase MiraLAX prep supplies",
+      "Purchase PEG-3350 powdered laxative: one 238 gram bottle and one 119 gram bottle, two bisacodyl laxative tablets, and 96 ounces total of electrolyte solution such as Gatorade or Powerade. Do not use red or purple liquids."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 2, hour: 18, minute: 0 },
+      "Mix 119 gram PEG-3350 bottle",
+      "Between 6 PM and 9 PM, mix the 119 gram PEG-3350 bottle with 32 ounces of electrolyte solution and shake well."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 2, hour: 18, minute: 15 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink 8 ounces of the mixed PEG-3350 solution. Continue every 15 to 30 minutes until done. If you feel like you may vomit, take a break until the feeling calms down, then resume more slowly."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 2, hour: 18, minute: 30 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 2, hour: 18, minute: 45 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 2, hour: 19, minute: 0 },
+      "Finish 119 gram PEG-3350 dose",
+      "Drink the remaining 8 ounces of the mixed PEG-3350 solution, or continue every 15 to 30 minutes until done."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 7, minute: 0 },
+      "Clear liquid diet all day",
+      "Do not eat solid food today. Start a clear liquid diet when you wake up. Avoid milk, milk products, anything you cannot see through, and anything red or purple."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 15, minute: 0 },
+      "Take bisacodyl tablets",
+      "At 3 PM, take two bisacodyl laxative tablets with 8 ounces of water."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 0 },
+      "Mix half of 238 gram PEG-3350 bottle",
+      "At 5 PM, mix half of the 238 gram PEG-3350 bottle with 32 ounces of electrolyte solution. Drink 8 ounces every 15 to 30 minutes until done."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 15 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 30 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "dayBefore", days: 1, hour: 17, minute: 45 },
+      "Finish evening PEG-3350 dose",
+      "Drink the remaining 8 ounces of the mixed PEG-3350 solution, or continue every 15 to 30 minutes until done. Continue drinking clear liquids until bedtime."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -360 },
+      "Mix remaining PEG-3350 dose",
+      "Five to six hours before the procedure, mix the remaining PEG-3350 with 32 ounces of electrolyte solution. Drink 8 ounces every 15 to 30 minutes until done."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -345 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -330 },
+      "Drink 8 ounces of PEG-3350",
+      "Drink the next 8 ounces of the mixed PEG-3350 solution."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -315 },
+      "Finish morning PEG-3350 dose",
+      "Drink the remaining 8 ounces of the mixed PEG-3350 solution, or continue every 15 to 30 minutes until done."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -270 },
+      "Drink clear liquids",
+      "Continue drinking an 8 ounce glass of clear liquid every half hour until 2 hours before the procedure."
+    ),
+    makePrepStep(
+      procedureDate,
+      { type: "offset", minutes: -120 },
+      "Stop drinking liquids",
+      "Stop drinking all liquids 2 hours before the procedure. You may take essential morning medications with a sip of water if your care team instructed you to do so."
+    )
+  ];
 }
 
 function populateVoices() {
@@ -408,7 +569,7 @@ function movePlanToProcedure(newProcedureValue) {
   state.arrivalTime = toInputValue(addMinutes(newProcedure, -45));
 
   if (state.steps.length === 0) {
-    state.steps = buildSuflaveTemplate(newProcedure);
+    state.steps = (prepTemplates[state.prepType] || prepTemplates.suflave).builder(newProcedure);
   } else if (deltaMs !== 0) {
     state.steps = state.steps.map(step => ({
       ...step,
@@ -461,6 +622,8 @@ function updateNext() {
 }
 
 function render() {
+  const template = prepTemplates[state.prepType] || prepTemplates.suflave;
+  els.prepSelect.value = state.prepType;
   els.procedureTime.value = state.procedureTime || "";
   els.arrivalTime.value = state.arrivalTime || "";
   els.repeatSelect.value = String(state.repeatMinutes);
@@ -473,6 +636,7 @@ function render() {
   els.timelineHint.textContent = state.showFullSchedule
     ? "Review all steps. Voice alarms still follow the scheduled times."
     : "Showing only the next step to follow.";
+  els.resetSchedule.textContent = `Reset ${template.label}`;
 
   const now = Date.now();
   const visibleSteps = state.showFullSchedule ? sortedSteps() : [nextStep()].filter(Boolean);
@@ -606,14 +770,11 @@ function refreshTemplate() {
     showToast("Set the procedure date and time first.");
     return;
   }
-  state.templateId = suflaveTemplateId;
-  state.arrivalTime = toInputValue(addMinutes(procedureDate, -45));
-  state.steps = buildSuflaveTemplate(procedureDate);
-  state.spoken = {};
+  applyPrepTemplate(state.prepType, procedureDate);
   save();
   scheduleAlarms();
   render();
-  showToast("Green Mountain SUFLAVE schedule loaded. Edit any step to match your clinic instructions.");
+  showToast(`${prepTemplates[state.prepType].loadedMessage} Edit any step to match your clinic instructions.`);
 }
 
 function bindEvents() {
@@ -632,6 +793,14 @@ function bindEvents() {
     state.arrivalTime = els.arrivalTime.value;
     save();
   });
+  els.prepSelect.addEventListener("change", () => {
+    const procedureDate = fromInputValue(state.procedureTime) || defaultProcedureDate();
+    applyPrepTemplate(els.prepSelect.value, procedureDate);
+    save();
+    scheduleAlarms();
+    render();
+    showToast(`${prepTemplates[state.prepType].loadedMessage} Arrival remains 45 minutes before procedure.`);
+  });
   els.repeatSelect.addEventListener("change", () => {
     state.repeatMinutes = Number(els.repeatSelect.value);
     save();
@@ -642,7 +811,7 @@ function bindEvents() {
     save();
   });
   els.enableAlarms.addEventListener("click", enableAlarms);
-  els.loadSuflaveTemplate.addEventListener("click", refreshTemplate);
+  els.resetSchedule.addEventListener("click", refreshTemplate);
   els.testAlarm.addEventListener("click", () => {
     const testStep = {
       id: uid(),
