@@ -44,6 +44,7 @@ const state = {
   steps: [],
   spoken: {},
   timers: new Map(),
+  audioContext: null,
   wakeLock: null
 };
 
@@ -55,6 +56,7 @@ const els = {
   repeatSelect: document.querySelector("#repeatSelect"),
   enableAlarms: document.querySelector("#enableAlarms"),
   resetSchedule: document.querySelector("#resetSchedule"),
+  exportCalendar: document.querySelector("#exportCalendar"),
   testAlarm: document.querySelector("#testAlarm"),
   printPlan: document.querySelector("#printPlan"),
   saveStatus: document.querySelector("#saveStatus"),
@@ -111,6 +113,22 @@ function formatDateTime(value) {
 
 function addMinutes(date, minutes) {
   return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+function deviceType() {
+  const ua = navigator.userAgent || "";
+  const platform = navigator.platform || "";
+  const touchMac = platform === "MacIntel" && navigator.maxTouchPoints > 1;
+  if (/iPad|iPhone|iPod/.test(ua) || touchMac) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "desktop";
+}
+
+function calendarButtonText() {
+  const type = deviceType();
+  if (type === "ios") return "Add to iPhone Calendar";
+  if (type === "android") return "Add to Android Calendar";
+  return "Download calendar file";
 }
 
 function timeFromRule(procedureDate, rule) {
@@ -622,10 +640,25 @@ function selectedVoice() {
   return speechSynthesis.getVoices().find(voice => voice.name === state.voiceName) || null;
 }
 
+async function unlockAudio() {
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  if (!state.audioContext) state.audioContext = new AudioContext();
+  if (state.audioContext.state === "suspended") await state.audioContext.resume();
+
+  const gain = state.audioContext.createGain();
+  const osc = state.audioContext.createOscillator();
+  gain.gain.value = 0.0001;
+  osc.connect(gain).connect(state.audioContext.destination);
+  osc.start();
+  osc.stop(state.audioContext.currentTime + 0.03);
+}
+
 function chime() {
   const AudioContext = window.AudioContext || window.webkitAudioContext;
   if (!AudioContext) return;
-  const context = new AudioContext();
+  const context = state.audioContext || new AudioContext();
+  state.audioContext = context;
   const gain = context.createGain();
   const osc = context.createOscillator();
   osc.type = "sine";
@@ -686,9 +719,10 @@ async function enableAlarms() {
   }
 
   state.alarmsEnabled = true;
+  await unlockAudio();
   save();
   render();
-  showToast("Voice alarms are on. Future reminders will play at their scheduled times.");
+  showToast("Voice alarms are on. On iPhone, keep this app open and the screen awake, or add Calendar alerts.");
   scheduleAlarms();
 
   if ("Notification" in window && Notification.permission === "default") {
@@ -814,6 +848,7 @@ function render() {
   els.voiceSelect.value = state.voiceName || "";
   els.enableAlarms.textContent = state.voiceEnabled ? "Voice alarms on" : "Voice alarms off";
   els.enableAlarms.setAttribute("aria-pressed", String(state.voiceEnabled));
+  els.exportCalendar.textContent = calendarButtonText();
   els.toggleFullSchedule.textContent = state.showFullSchedule ? "Hide full schedule" : "Show full schedule";
   els.toggleFullSchedule.setAttribute("aria-pressed", String(state.showFullSchedule));
   els.timelineTitle.textContent = state.showFullSchedule ? "Full prep schedule" : "Current instruction";
@@ -948,6 +983,118 @@ function deleteDialogStep() {
   render();
 }
 
+function escapeIcsText(value) {
+  return String(value)
+    .replace(/\\/g, "\\\\")
+    .replace(/\n/g, "\\n")
+    .replace(/,/g, "\\,")
+    .replace(/;/g, "\\;");
+}
+
+function formatIcsLocal(value) {
+  const date = fromInputValue(value);
+  if (!date || Number.isNaN(date.getTime())) return "";
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate())
+  ].join("") + "T" + [
+    pad(date.getHours()),
+    pad(date.getMinutes()),
+    "00"
+  ].join("");
+}
+
+function foldIcsLine(line) {
+  const chunks = [];
+  let remaining = line;
+  while (remaining.length > 74) {
+    chunks.push(remaining.slice(0, 74));
+    remaining = " " + remaining.slice(74);
+  }
+  chunks.push(remaining);
+  return chunks.join("\r\n");
+}
+
+async function exportCalendar() {
+  const activeSteps = sortedSteps().filter(step => !step.done && fromInputValue(step.time));
+  if (activeSteps.length === 0) {
+    showToast("There are no active prep steps to export.");
+    return;
+  }
+
+  const template = prepTemplates[state.prepType] || prepTemplates.suflave;
+  const generated = new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Green Mountain Prep Companion//EN",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeIcsText(`Green Mountain ${template.label}`)}`
+  ];
+
+  activeSteps.forEach(step => {
+    const start = formatIcsLocal(step.time);
+    const end = formatIcsLocal(toInputValue(addMinutes(fromInputValue(step.time), 5)));
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${step.id}@green-mountain-prep-companion`,
+      `DTSTAMP:${generated}`,
+      `DTSTART:${start}`,
+      `DTEND:${end}`,
+      `SUMMARY:${escapeIcsText(step.title)}`,
+      `DESCRIPTION:${escapeIcsText(step.message)}`,
+      "BEGIN:VALARM",
+      "TRIGGER:PT0S",
+      "ACTION:DISPLAY",
+      `DESCRIPTION:${escapeIcsText(step.title)}`,
+      "END:VALARM",
+      "END:VEVENT"
+    );
+  });
+
+  lines.push("END:VCALENDAR");
+  const body = lines.map(foldIcsLine).join("\r\n");
+  const filename = `green-mountain-${state.prepType}-prep-alarms.ics`;
+  const file = new File([body], filename, { type: "text/calendar" });
+  const type = deviceType();
+
+  if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: "Green Mountain prep alarms",
+        text: "Add these colonoscopy prep reminders to your calendar."
+      });
+      showToast(type === "android"
+        ? "Choose Calendar or your preferred app to add the prep alerts."
+        : "Open the shared calendar file and add the prep alerts.");
+      return;
+    } catch (error) {
+      if (error.name === "AbortError") return;
+    }
+  }
+
+  const blob = new Blob([body], { type: "text/calendar;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+  if (type === "ios") {
+    showToast("Calendar file created. Open it and add the events to iPhone Calendar.");
+  } else if (type === "android") {
+    showToast("Calendar file created. Open it with Calendar to add the prep alerts.");
+  } else {
+    showToast("Calendar file downloaded. Import it into your calendar app.");
+  }
+}
+
 function refreshTemplate() {
   const procedureDate = fromInputValue(state.procedureTime);
   if (!procedureDate || Number.isNaN(procedureDate.getTime())) {
@@ -996,6 +1143,7 @@ function bindEvents() {
   });
   els.enableAlarms.addEventListener("click", enableAlarms);
   els.resetSchedule.addEventListener("click", refreshTemplate);
+  els.exportCalendar.addEventListener("click", exportCalendar);
   els.testAlarm.addEventListener("click", () => {
     const testStep = {
       id: uid(),
