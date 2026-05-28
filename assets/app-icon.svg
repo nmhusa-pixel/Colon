@@ -1,22 +1,52 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
   <title id="title">Colonoscopy Prep Companion icon</title>
-  <desc id="desc">A blue app icon with a stylized red colon and yellow reminder mark.</desc>
+  <desc id="desc">A blue app icon with a stylized anatomical colon and yellow reminder accent.</desc>
   <defs>
-    <linearGradient id="bg" x1="84" x2="430" y1="34" y2="486" gradientUnits="userSpaceOnUse">
+    <linearGradient id="bg" x1="64" x2="448" y1="28" y2="492" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#245da2"/>
       <stop offset="0.58" stop-color="#1d4f91"/>
       <stop offset="1" stop-color="#143a6f"/>
     </linearGradient>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#0d2c54" flood-opacity="0.28"/>
+      <feDropShadow dx="0" dy="14" stdDeviation="16" flood-color="#0d2c54" flood-opacity="0.28"/>
     </filter>
   </defs>
+
   <rect width="512" height="512" rx="112" fill="url(#bg)"/>
-  <path d="M90 398c54 44 137 70 221 52 70-15 113-58 132-115" fill="none" stroke="#f4bd2a" stroke-width="28" stroke-linecap="round" opacity="0.95"/>
+  <path d="M88 402c55 44 137 68 220 50 72-15 115-58 136-116" fill="none" stroke="#f4bd2a" stroke-width="28" stroke-linecap="round"/>
+
   <g filter="url(#shadow)">
-    <path d="M162 124c-43 18-68 62-61 110 7 52 48 79 87 83 35 4 60-9 79-28 16-16 35-16 46-4 12 12 10 35-4 49-25 26-67 38-113 31-72-11-126-62-137-126-12-69 22-136 83-166 58-28 128-17 168 26 36 39 40 97 8 137-17 21-44 32-77 32-28 0-48-14-48-35 0-20 18-33 42-33 21 0 35-7 43-19 10-16 8-38-6-54-22-25-71-34-110-13z" fill="none" stroke="#ffffff" stroke-width="54" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M162 124c-43 18-68 62-61 110 7 52 48 79 87 83 35 4 60-9 79-28 16-16 35-16 46-4 12 12 10 35-4 49-25 26-67 38-113 31-72-11-126-62-137-126-12-69 22-136 83-166 58-28 128-17 168 26 36 39 40 97 8 137-17 21-44 32-77 32-28 0-48-14-48-35 0-20 18-33 42-33 21 0 35-7 43-19 10-16 8-38-6-54-22-25-71-34-110-13z" fill="none" stroke="#c73b32" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="370" cy="152" r="24" fill="#f4bd2a"/>
-    <circle cx="370" cy="226" r="24" fill="#f4bd2a"/>
+    <path d="M137 342c-38-20-59-57-59-102v-68c0-54 42-96 96-96h164c54 0 96 42 96 96v68c0 46-32 85-76 95 29 8 51 35 51 67 0 39-32 70-72 70-45 0-85-22-109-56-13 8-29 13-46 13-50 0-91-41-91-91v-15c0-18 14-32 32-32s32 14 32 32v15c0 15 12 27 27 27 12 0 22-7 26-18-3-13-5-27-5-41V178h-40v63c0 46-25 85-62 101l-5 56" fill="none" stroke="#ffffff" stroke-width="66" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M137 342c-38-20-59-57-59-102v-68c0-54 42-96 96-96h164c54 0 96 42 96 96v68c0 46-32 85-76 95 29 8 51 35 51 67 0 39-32 70-72 70-45 0-85-22-109-56-13 8-29 13-46 13-50 0-91-41-91-91v-15c0-18 14-32 32-32s32 14 32 32v15c0 15 12 27 27 27 12 0 22-7 26-18-3-13-5-27-5-41V178h-40v63c0 46-25 85-62 101l-5 56" fill="none" stroke="#c73b32" stroke-width="42" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <g fill="#ef6b61" stroke="#a8231d" stroke-width="4" opacity="0.96">
+      <ellipse cx="103" cy="172" rx="20" ry="25"/>
+      <ellipse cx="101" cy="224" rx="20" ry="26"/>
+      <ellipse cx="111" cy="278" rx="22" ry="25"/>
+      <ellipse cx="143" cy="325" rx="23" ry="20"/>
+      <ellipse cx="174" cy="101" rx="24" ry="18"/>
+      <ellipse cx="226" cy="96" rx="24" ry="17"/>
+      <ellipse cx="282" cy="96" rx="24" ry="17"/>
+      <ellipse cx="337" cy="105" rx="23" ry="18"/>
+      <ellipse cx="407" cy="171" rx="20" ry="25"/>
+      <ellipse cx="411" cy="225" rx="20" ry="25"/>
+      <ellipse cx="393" cy="286" rx="24" ry="21"/>
+      <ellipse cx="354" cy="331" rx="25" ry="19"/>
+      <ellipse cx="380" cy="409" rx="23" ry="23"/>
+      <ellipse cx="329" cy="442" rx="26" ry="19"/>
+      <ellipse cx="277" cy="420" rx="24" ry="18"/>
+      <ellipse cx="190" cy="399" rx="24" ry="19"/>
+      <ellipse cx="125" cy="382" rx="13" ry="28" transform="rotate(8 125 382)"/>
+    </g>
+
+    <g stroke="#ffffff" stroke-width="8" stroke-linecap="round" opacity="0.7">
+      <path d="M133 149c33-21 75-31 122-31 51 0 93 9 124 29"/>
+      <path d="M116 298c17 22 41 36 69 41"/>
+      <path d="M318 352c29 7 55 1 78-18"/>
+      <path d="M244 389c26 34 61 54 101 58"/>
+    </g>
+
+    <circle cx="382" cy="142" r="23" fill="#f4bd2a"/>
+    <circle cx="382" cy="210" r="23" fill="#f4bd2a"/>
   </g>
 </svg>
