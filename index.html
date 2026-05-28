@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Colonoscopy Prep Companion</title>
+    <link rel="stylesheet" href="styles.css?v=4">
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Prep Companion</p>
+        <h1>Colonoscopy prep alarms</h1>
+      </div>
+      <button id="enableAlarms" class="primary-button" type="button" aria-pressed="false">Voice alarms off</button>
+    </header>
+
+    <main class="app-shell">
+      <section class="setup-panel" aria-labelledby="setupTitle">
+        <div class="panel-heading">
+          <h2 id="setupTitle">Procedure details</h2>
+          <span id="saveStatus" class="status-pill">Saved locally</span>
+        </div>
+
+        <div class="form-grid">
+          <label>
+            Procedure date and time
+            <input id="procedureTime" type="datetime-local">
+          </label>
+          <label>
+            Arrival time
+            <input id="arrivalTime" type="datetime-local">
+          </label>
+          <label>
+            Voice
+            <select id="voiceSelect"></select>
+          </label>
+          <label>
+            Repeat alert every
+            <select id="repeatSelect">
+              <option value="0">Do not repeat</option>
+              <option value="5">5 minutes</option>
+              <option value="10" selected>10 minutes</option>
+              <option value="15">15 minutes</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="actions">
+          <button id="loadTemplate" class="secondary-button" type="button">Load common MiraLAX template</button>
+          <button id="testAlarm" class="secondary-button" type="button">Test in 10 seconds</button>
+          <button id="printPlan" class="ghost-button" type="button">Print</button>
+        </div>
+
+        <p class="medical-note">
+          All unchecked timeline items can play voice alarms at their scheduled times. Turn voice alarms on when you want spoken reminders. Use this as a reminder tool only and follow the exact instructions from the gastroenterology team.
+        </p>
+      </section>
+
+      <section class="now-panel" aria-live="polite">
+        <div>
+          <p class="eyebrow">Next step</p>
+          <h2 id="nextTitle">Set a procedure time</h2>
+          <p id="nextDetail">Your upcoming prep instruction will appear here.</p>
+        </div>
+        <div class="countdown" id="countdown">--:--:--</div>
+      </section>
+
+      <section class="timeline-panel" aria-labelledby="timelineTitle">
+        <div class="panel-heading">
+          <h2 id="timelineTitle">Prep timeline</h2>
+          <button id="addStep" class="secondary-button compact" type="button">Add step</button>
+        </div>
+        <div id="timeline" class="timeline"></div>
+      </section>
+    </main>
+
+    <dialog id="stepDialog">
+      <form method="dialog" class="dialog-form">
+        <h2 id="dialogTitle">Edit step</h2>
+        <input id="editingId" type="hidden">
+        <label>
+          Step title
+          <input id="stepTitle" required maxlength="80">
+        </label>
+        <label>
+          Instructions to speak
+          <textarea id="stepMessage" required rows="4"></textarea>
+        </label>
+        <label>
+          Alert time
+          <input id="stepTime" type="datetime-local" required>
+        </label>
+        <div class="dialog-actions">
+          <button id="deleteStep" class="danger-button" value="delete" type="button">Delete</button>
+          <span></span>
+          <button class="ghost-button" value="cancel" type="submit">Cancel</button>
+          <button id="saveStep" class="primary-button" value="save" type="button">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <div id="toast" class="toast" role="status" aria-live="assertive"></div>
+
+    <script src="app.js?v=4"></script>
+  </body>
+</html>
