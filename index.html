@@ -80,8 +80,14 @@
 
       <section class="timeline-panel" aria-labelledby="timelineTitle">
         <div class="panel-heading">
-          <h2 id="timelineTitle">Prep timeline</h2>
-          <button id="addStep" class="secondary-button compact" type="button">Add step</button>
+          <div>
+            <h2 id="timelineTitle">Current instruction</h2>
+            <p id="timelineHint" class="section-hint">Showing only the next step to follow.</p>
+          </div>
+          <div class="panel-actions">
+            <button id="toggleFullSchedule" class="secondary-button compact" type="button" aria-pressed="false">Show full schedule</button>
+            <button id="addStep" class="secondary-button compact" type="button">Add step</button>
+          </div>
         </div>
         <div id="timeline" class="timeline"></div>
       </section>
@@ -114,6 +120,6 @@
 
     <div id="toast" class="toast" role="status" aria-live="assertive"></div>
 
-    <script src="app.js?v=7"></script>
+    <script src="app.js?v=9"></script>
   </body>
 </html>

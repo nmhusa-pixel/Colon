@@ -10,6 +10,7 @@ const state = {
   voiceName: "",
   alarmsEnabled: true,
   voiceEnabled: false,
+  showFullSchedule: false,
   steps: [],
   spoken: {},
   timers: new Map(),
@@ -30,6 +31,9 @@ const els = {
   nextDetail: document.querySelector("#nextDetail"),
   countdown: document.querySelector("#countdown"),
   timeline: document.querySelector("#timeline"),
+  timelineTitle: document.querySelector("#timelineTitle"),
+  timelineHint: document.querySelector("#timelineHint"),
+  toggleFullSchedule: document.querySelector("#toggleFullSchedule"),
   addStep: document.querySelector("#addStep"),
   stepDialog: document.querySelector("#stepDialog"),
   dialogTitle: document.querySelector("#dialogTitle"),
@@ -350,6 +354,7 @@ async function enableAlarms() {
 
 function triggerAlarm(step, repeat = false) {
   if (step.done) return;
+  state.showFullSchedule = false;
   notify(step);
   if (state.voiceEnabled) {
     chime();
@@ -358,6 +363,7 @@ function triggerAlarm(step, repeat = false) {
   showToast(`${step.title}: ${step.message}`);
   state.spoken[step.id] = Date.now();
   save();
+  render();
 
   if (state.repeatMinutes > 0 && state.voiceEnabled) {
     const repeatId = `${step.id}:repeat`;
@@ -461,10 +467,17 @@ function render() {
   els.voiceSelect.value = state.voiceName || "";
   els.enableAlarms.textContent = state.voiceEnabled ? "Voice alarms on" : "Voice alarms off";
   els.enableAlarms.setAttribute("aria-pressed", String(state.voiceEnabled));
+  els.toggleFullSchedule.textContent = state.showFullSchedule ? "Hide full schedule" : "Show full schedule";
+  els.toggleFullSchedule.setAttribute("aria-pressed", String(state.showFullSchedule));
+  els.timelineTitle.textContent = state.showFullSchedule ? "Full prep schedule" : "Current instruction";
+  els.timelineHint.textContent = state.showFullSchedule
+    ? "Review all steps. Voice alarms still follow the scheduled times."
+    : "Showing only the next step to follow.";
 
   const now = Date.now();
+  const visibleSteps = state.showFullSchedule ? sortedSteps() : [nextStep()].filter(Boolean);
   els.timeline.innerHTML = "";
-  sortedSteps().forEach(step => {
+  visibleSteps.forEach(step => {
     const due = fromInputValue(step.time);
     const item = document.createElement("article");
     item.className = "step";
@@ -479,6 +492,7 @@ function render() {
     checkbox.addEventListener("change", () => {
       step.done = checkbox.checked;
       clearTimeout(state.timers.get(`${step.id}:repeat`));
+      if (checkbox.checked) state.showFullSchedule = false;
       save();
       scheduleAlarms();
       render();
@@ -519,6 +533,12 @@ function render() {
 
 function refreshUrgency() {
   const now = Date.now();
+  const current = nextStep();
+  const focusedItem = !state.showFullSchedule && current
+    ? els.timeline.querySelector(`[data-step-id="${CSS.escape(current.id)}"]`)
+    : null;
+  if (!state.showFullSchedule && current && !focusedItem) render();
+
   state.steps.forEach(step => {
     const item = els.timeline.querySelector(`[data-step-id="${CSS.escape(step.id)}"]`);
     const due = fromInputValue(step.time);
@@ -636,6 +656,10 @@ function bindEvents() {
   });
   els.printPlan.addEventListener("click", () => window.print());
   els.addStep.addEventListener("click", () => openDialog());
+  els.toggleFullSchedule.addEventListener("click", () => {
+    state.showFullSchedule = !state.showFullSchedule;
+    render();
+  });
   els.saveStep.addEventListener("click", saveDialogStep);
   els.deleteStep.addEventListener("click", deleteDialogStep);
   document.addEventListener("visibilitychange", () => {
